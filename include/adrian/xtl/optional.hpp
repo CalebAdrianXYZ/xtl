@@ -3,8 +3,6 @@
 
 // TODO: refactor constraints used in optional to use subsumable-concepts.
 // TODO: further document STL dependencies.
-// TODO: replace static_cast's with MOVE/FORWARD macros, or assume overhead from
-//  invoking std::move/std::forward in debug builds.
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -58,7 +56,6 @@
 #       pragma GCC diagnostic ignored "-Wc++98-compat-pedantic"
 #       pragma GCC diagnostic ignored "-Wweak-vtables"
 #   endif
-#   pragma GCC diagnostic ignored "-Wunused-macros"
 #   pragma GCC diagnostic ignored "-Wpadded"
 #endif
 
@@ -71,8 +68,6 @@
 #define ADRIAN_XTL_OPTIONAL_ASSUME(...) (void)(__VA_ARGS__);
 #endif
 
-// NOTE: these are defined but not currently used
-// TODO: replace static casts with these
 #define ADRIAN_XTL_OPTIONAL_MOVE(...) \
     static_cast<std::remove_reference_t<decltype(__VA_ARGS__)>&&>(__VA_ARGS__)
 
@@ -156,7 +151,9 @@ namespace adrian::xtl::_optional
         constexpr auto operator()(QO&& o, F&& f) const -> R
         {
             if (o) {
-                return std::invoke(static_cast<F&&>(f), *static_cast<QO&&>(o));
+                return std::invoke(
+                    ADRIAN_XTL_OPTIONAL_FORWARD(f),
+                    *ADRIAN_XTL_OPTIONAL_FORWARD(o));
             }
             else {
                 return R();
@@ -186,7 +183,9 @@ namespace adrian::xtl::_optional
             if (o) {
                 return R(
                     in_place,
-                    std::invoke(static_cast<F&&>(f), *static_cast<QO&&>(o)));
+                    std::invoke(
+                        ADRIAN_XTL_OPTIONAL_FORWARD(f),
+                        *ADRIAN_XTL_OPTIONAL_FORWARD(o)));
             }
             else {
                 return R();
@@ -209,7 +208,12 @@ namespace adrian::xtl::_optional
             and std::constructible_from<T, QT>
         constexpr auto operator()(QO&& o, F&& f) const -> optional<T>
         {
-            return o ? *static_cast<QO&&>(o) : std::invoke(static_cast<F&&>(f));
+            if (o) {
+                return *ADRIAN_XTL_OPTIONAL_FORWARD(o);
+            }
+            else {
+                return std::invoke(ADRIAN_XTL_OPTIONAL_FORWARD(f));
+            }
         }
     } inline constexpr or_else{};
 }
@@ -279,7 +283,7 @@ namespace adrian::xtl
             requires (std::is_move_constructible_v<T> and not std::is_trivially_move_constructible_v<T>)
         {
             if (other) {
-                emplace(*static_cast<optional&&>(other));
+                emplace(*ADRIAN_XTL_OPTIONAL_MOVE(other));
             }
         }
 
@@ -304,7 +308,7 @@ namespace adrian::xtl
         constexpr optional(O&& other)
         {
             if (other) {
-                emplace(*static_cast<O&&>(other));
+                emplace(*ADRIAN_XTL_OPTIONAL_FORWARD(other));
             }
         }
 
@@ -314,7 +318,7 @@ namespace adrian::xtl
         requires std::constructible_from<T, Args...>
         explicit constexpr optional(in_place_t, Args&&... args)
         {
-            emplace(static_cast<Args&&>(args)...);
+            emplace(ADRIAN_XTL_OPTIONAL_FORWARD(args)...);
         }
 
         // 7
@@ -324,7 +328,7 @@ namespace adrian::xtl
         explicit constexpr optional(in_place_t,
             std::initializer_list<U> ilist, Args&&... args)
         {
-            emplace(ilist, static_cast<Args&&>(args)...);
+            emplace(ilist, ADRIAN_XTL_OPTIONAL_FORWARD(args)...);
         }
 
         // 8
@@ -336,7 +340,7 @@ namespace adrian::xtl
         explicit(not std::is_convertible_v<U, T>)
         constexpr optional(U&& value)
         {
-            emplace(static_cast<U&&>(value));
+            emplace(ADRIAN_XTL_OPTIONAL_FORWARD(value));
         }
 
     public: // destructors
@@ -420,14 +424,14 @@ namespace adrian::xtl
         {
             if (m_exists) {
                 if (other.m_exists) {
-                    m_storage.value = *static_cast<optional&&>(other);
+                    m_storage.value = *ADRIAN_XTL_OPTIONAL_MOVE(other);
                 }
                 else {
                     reset();
                 }
             }
             else if (other.m_exists) {
-                emplace(*static_cast<optional&&>(other));
+                emplace(*ADRIAN_XTL_OPTIONAL_MOVE(other));
             }
             return *this;
         }
@@ -447,7 +451,7 @@ namespace adrian::xtl
                 m_storage.value = value;
             }
             else {
-                emplace(static_cast<U&&>(value));
+                emplace(ADRIAN_XTL_OPTIONAL_FORWARD(value));
             }
             return *this;
         }
@@ -480,14 +484,14 @@ namespace adrian::xtl
         {
             if (m_exists) {
                 if (other.m_exists) {
-                    m_storage.value = *static_cast<O&&>(other);
+                    m_storage.value = *ADRIAN_XTL_OPTIONAL_FORWARD(other);
                 }
                 else {
                     reset();
                 }
             }
             else if (other.m_exists) {
-                emplace(*static_cast<O&&>(other));
+                emplace(*ADRIAN_XTL_OPTIONAL_FORWARD(other));
             }
             return *this;
         }
@@ -495,32 +499,38 @@ namespace adrian::xtl
     public: // observers
         constexpr auto operator->() const -> T const*
         {
-            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists); return std::addressof(m_storage.value);
+            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists);
+            return std::addressof(m_storage.value);
         }
 
         constexpr auto operator->() -> T*
         {
-            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists); return std::addressof(m_storage.value);
+            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists);
+            return std::addressof(m_storage.value);
         }
 
         constexpr auto operator*() const& -> T const&
         {
-            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists); return m_storage.value;
+            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists);
+            return m_storage.value;
         }
 
         constexpr auto operator*() & -> T&
         {
-            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists); return m_storage.value;
+            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists);
+            return m_storage.value;
         }
 
         constexpr auto operator*() const&& -> T const&&
         {
-            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists); return static_cast<T const&&>(m_storage.value);
+            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists);
+            return static_cast<T const&&>(m_storage.value);
         }
 
         constexpr auto operator*() && -> T&&
         {
-            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists); return static_cast<T&&>(m_storage.value);
+            ADRIAN_XTL_OPTIONAL_ASSUME(m_exists);
+            return static_cast<T&&>(m_storage.value);
         }
 
         explicit constexpr operator bool() const noexcept { return m_exists; }
@@ -582,7 +592,7 @@ namespace adrian::xtl
         constexpr auto value_or(U&& value) && -> T
         {
             return *this
-                ? *static_cast<optional&&>(*this)
+                ? *ADRIAN_XTL_OPTIONAL_MOVE(*this)
                 : static_cast<T>(static_cast<U&&>(value));
         }
 
@@ -594,14 +604,14 @@ namespace adrian::xtl
         requires std::invocable<_optional::and_then_func, optional const&, F>
         constexpr auto and_then(F&& f) const&
         {
-            return _optional::and_then(*this, static_cast<decltype(f)&&>(f));
+            return _optional::and_then(*this, ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
         template<typename F>
         requires std::invocable<_optional::and_then_func, optional&, F>
         constexpr auto and_then(F&& f) &
         {
-            return _optional::and_then(*this, static_cast<decltype(f)&&>(f));
+            return _optional::and_then(*this, ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
         template<typename F>
@@ -610,7 +620,7 @@ namespace adrian::xtl
         {
             return _optional::and_then(
                 static_cast<optional const&&>(*this),
-                static_cast<decltype(f)&&>(f));
+                ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
         template<typename F>
@@ -619,7 +629,7 @@ namespace adrian::xtl
         {
             return _optional::and_then(
                 static_cast<optional&&>(*this),
-                static_cast<decltype(f)&&>(f));
+                ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
         // transform
@@ -628,14 +638,14 @@ namespace adrian::xtl
         requires std::invocable<_optional::transform_func, optional const&, F>
         constexpr auto transform(F&& f) const&
         {
-            return _optional::transform(*this, static_cast<decltype(f)&&>(f));
+            return _optional::transform(*this, ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
         template<typename F>
         requires std::invocable<_optional::transform_func, optional&, F>
         constexpr auto transform(F&& f) &
         {
-            return _optional::transform(*this, static_cast<decltype(f)&&>(f));
+            return _optional::transform(*this, ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
         template<typename F>
@@ -644,7 +654,7 @@ namespace adrian::xtl
         {
             return _optional::transform(
                 static_cast<optional const&&>(*this),
-                static_cast<decltype(f)&&>(f));
+                ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
         template<typename F>
@@ -653,7 +663,7 @@ namespace adrian::xtl
         {
             return _optional::transform(
                 static_cast<optional&&>(*this),
-                static_cast<decltype(f)&&>(f));
+                ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
         // or_else
@@ -662,7 +672,7 @@ namespace adrian::xtl
         requires std::invocable<_optional::or_else_func, optional const&, F>
         constexpr auto or_else(F&& f) const& -> optional
         {
-            return _optional::or_else(*this, static_cast<decltype(f)&&>(f));
+            return _optional::or_else(*this, ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
         template<typename F>
@@ -671,7 +681,7 @@ namespace adrian::xtl
         {
             return _optional::or_else(
                 static_cast<optional&&>(*this),
-                static_cast<decltype(f)&&>(f));
+                ADRIAN_XTL_OPTIONAL_FORWARD(f));
         }
 
     private: // private modifiers
@@ -684,7 +694,7 @@ namespace adrian::xtl
             reset();
             auto ptr = std::construct_at(
                 std::addressof(m_storage.value),
-                static_cast<Args&&>(args)...);
+                ADRIAN_XTL_OPTIONAL_FORWARD(args)...);
             m_exists = true;
             return *ptr;
         }
@@ -705,11 +715,11 @@ namespace adrian::xtl
                     swap(m_storage.value, other.m_storage.value);
                 }
                 else {
-                    other.emplace(static_cast<T&&>(m_storage.value));
+                    other.emplace(ADRIAN_XTL_OPTIONAL_MOVE(m_storage.value));
                     reset();
                 }
             } else if (other.m_exists) {
-                emplace(static_cast<T&&>(other.m_storage.value));
+                emplace(ADRIAN_XTL_OPTIONAL_MOVE(other.m_storage.value));
                 other.reset();
             }
         }
@@ -727,7 +737,7 @@ namespace adrian::xtl
             noexcept(std::is_nothrow_constructible_v<T, Args...>)
             -> T&
         {
-            return _emplace(static_cast<Args&&>(args)...);
+            return _emplace(ADRIAN_XTL_OPTIONAL_FORWARD(args)...);
         }
 
         template<typename U, typename... Args>
@@ -737,7 +747,7 @@ namespace adrian::xtl
                 std::initializer_list<U>&, Args...>)
             -> T&
         {
-            return _emplace(ilist, static_cast<Args&&>(args)...);
+            return _emplace(ilist, ADRIAN_XTL_OPTIONAL_FORWARD(args)...);
         }
 
     public: // hidden friends
@@ -785,14 +795,14 @@ namespace adrian::xtl
     constexpr auto make_optional(T&& value)
         -> optional<DT>
     {
-        return optional<DT>(static_cast<T&&>(value));
+        return optional<DT>(ADRIAN_XTL_OPTIONAL_FORWARD(value));
     }
 
     template<typename T, typename... Args, typename DT = std::decay_t<T>>
     constexpr auto make_optional(Args&&... args)
         -> optional<DT>
     {
-        return optional<DT>(static_cast<Args&&>(args)...);
+        return optional<DT>(ADRIAN_XTL_OPTIONAL_FORWARD(args)...);
     }
 
     template<
@@ -801,7 +811,7 @@ namespace adrian::xtl
     constexpr auto make_optional(std::initializer_list<U> ilist, Args&&... args)
         -> optional<DT>
     {
-        return optional<DT>(ilist, static_cast<Args&&>(args)...);
+        return optional<DT>(ilist, ADRIAN_XTL_OPTIONAL_FORWARD(args)...);
     }
 }
 
