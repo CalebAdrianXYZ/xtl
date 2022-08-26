@@ -1,10 +1,10 @@
-#pragma once
+#if !defined(ADRIAN_XTL_OPTIONAL_HPP)
+#define ADRIAN_XTL_OPTIONAL_HPP
 
 // TODO: refactor constraints used in optional to use subsumable-concepts.
 // TODO: further document STL dependencies.
 // TODO: replace static_cast's with MOVE/FORWARD macros, or assume overhead from
 //  invoking std::move/std::forward in debug builds.
-// TODO: replace pragma once with header guards?!?
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -823,4 +823,6 @@ struct std::hash<adrian::xtl::optional<T>>
 #   pragma warning(pop)
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic pop
+#endif
+
 #endif
