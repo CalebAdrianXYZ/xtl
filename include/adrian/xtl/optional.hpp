@@ -205,6 +205,10 @@ namespace adrian::xtl::_optional
             T,
             std::remove_const_t<std::remove_reference_t<O>>>;
 
+    template<typename T>
+    requires requires { typename std::decay_t<T>::value_type; }
+    using value_type_decay_t = typename std::decay_t<T>::value_type;
+
 #if defined(_MSC_VER)
     [[noreturn]] __declspec(noinline)
 #else
@@ -368,22 +372,8 @@ namespace adrian::xtl
 
         // 4, 5
 
-        template<typename O, typename Opt = std::remove_const_t<std::remove_reference_t<O>>>
-        requires
-            (std::same_as<Opt const&, O> or std::same_as<Opt&&, O>)
-            and requires { typename Opt::value_type; }
-            and std::same_as<optional<typename Opt::value_type>, Opt>
-            and (not std::same_as<typename Opt::value_type, value_type>)
-            and (std::is_constructible_v<T, decltype(*std::declval<O>())>)
-            and (not std::is_constructible_v<T, Opt&>)
-            and (not std::is_constructible_v<T, Opt const&>)
-            and (not std::is_constructible_v<T, Opt&&>)
-            and (not std::is_constructible_v<T, Opt const&&>)
-            and (not std::is_convertible_v<Opt&, T>)
-            and (not std::is_convertible_v<Opt const&, T>)
-            and (not std::is_convertible_v<Opt&&, T>)
-            and (not std::is_convertible_v<Opt const&&, T>)
-        explicit(not std::is_convertible_v<typename Opt::value_type, T>)
+        template<_optional::conversion_constructible<T> O>
+        explicit(not std::is_convertible_v<_optional::value_type_decay_t<O>, T>)
         constexpr optional(O&& other)
         {
             if (other) {
@@ -516,28 +506,7 @@ namespace adrian::xtl
 
         // 5, 6
 
-        template<
-            typename O,
-            typename Opt = std::remove_const_t<std::remove_reference_t<O>>>
-        requires
-            (std::same_as<Opt const&, O> or std::same_as<Opt&&, O>)
-            and requires { typename Opt::value_type; }
-            and std::same_as<optional<typename Opt::value_type>, Opt>
-            and (not std::same_as<typename Opt::value_type, value_type>)
-            and (std::is_constructible_v<T, decltype(*std::declval<O>())>)
-            and (std::is_assignable_v<T&, decltype(*std::declval<O>())>)
-            and (not std::is_constructible_v<T, Opt&>)
-            and (not std::is_constructible_v<T, Opt const&>)
-            and (not std::is_constructible_v<T, Opt&&>)
-            and (not std::is_constructible_v<T, Opt const&&>)
-            and (not std::is_convertible_v<Opt&, T>)
-            and (not std::is_convertible_v<Opt const&, T>)
-            and (not std::is_convertible_v<Opt&&, T>)
-            and (not std::is_convertible_v<Opt const&&, T>)
-            and (not std::is_assignable_v<T&, Opt&>)
-            and (not std::is_assignable_v<T&, Opt const&>)
-            and (not std::is_assignable_v<T&, Opt&&>)
-            and (not std::is_assignable_v<T&, Opt const&&>)
+        template<_optional::conversion_assignable<T> O>
         constexpr auto operator=(O&& other) -> optional&
         {
             if (m_exists) {
