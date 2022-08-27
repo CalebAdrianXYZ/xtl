@@ -299,15 +299,14 @@ namespace adrian::xtl
         // 2
 
         optional(optional const& other)
-            requires (not std::is_copy_constructible_v<T>)
             = delete;
 
         optional(optional const& other)
-            requires (std::is_trivially_copy_constructible_v<T>)
+            requires _optional::trivially_copy_constructible<T>
             = default;
 
         constexpr optional(optional const& other)
-            requires (std::is_copy_constructible_v<T> and not std::is_trivially_copy_constructible_v<T>)
+            requires _optional::copy_constructible<T>
         {
             if (other) {
                 emplace(*other);
@@ -317,11 +316,11 @@ namespace adrian::xtl
         // 3
 
         optional(optional&& other)
-            requires (std::is_trivially_move_constructible_v<T>)
+            requires _optional::trivially_move_constructible<T>
             = default;
 
         constexpr optional(optional&& other) noexcept(std::is_nothrow_move_constructible_v<T>)
-            requires (std::is_move_constructible_v<T> and not std::is_trivially_move_constructible_v<T>)
+            requires _optional::move_constructible<T>
         {
             if (other) {
                 emplace(*ADRIAN_XTL_OPTIONAL_MOVE(other));
@@ -408,27 +407,14 @@ namespace adrian::xtl
         // 2
 
         optional& operator=(optional const&)
-            requires
-                (not std::is_copy_constructible_v<T>)
-                and (not std::is_copy_assignable_v<T>)
             = delete;
 
         optional& operator=(optional const&)
-            requires
-                (std::is_copy_constructible_v<T>)
-                and (std::is_copy_assignable_v<T>)
-                and (std::is_trivially_copy_constructible_v<T>)
-                and (std::is_trivially_copy_assignable_v<T>)
-                and (std::is_trivially_destructible_v<T>)
+            requires _optional::trivially_copy_assignable<T>
             = default;
 
         constexpr optional& operator=(optional const& other)
-            requires
-                (std::is_copy_constructible_v<T>)
-                and (std::is_copy_assignable_v<T>)
-                and ((not std::is_trivially_copy_constructible_v<T>)
-                    or (not std::is_trivially_copy_assignable_v<T>)
-                    or (not std::is_trivially_destructible_v<T>))
+            requires _optional::copy_assignable<T>
         {
             if (m_exists) {
                 if (other.m_exists) {
@@ -447,21 +433,13 @@ namespace adrian::xtl
         // 3
 
         optional& operator=(optional&&)
-            requires
-                (std::is_trivially_move_constructible_v<T>)
-                and (std::is_trivially_move_assignable_v<T>)
-                and (std::is_trivially_destructible_v<T>)
+            requires _optional::trivially_move_assignable<T>
             = default;
 
         constexpr optional& operator=(optional&& other)
             noexcept(std::is_nothrow_move_constructible_v<T>
                 and std::is_nothrow_move_assignable_v<T>)
-            requires
-                (std::is_move_constructible_v<T>)
-                and (std::is_move_assignable_v<T>)
-                and ((not std::is_trivially_move_constructible_v<T>)
-                    or (not std::is_trivially_move_assignable_v<T>)
-                    or (not std::is_trivially_destructible_v<T>))
+            requires _optional::move_assignable<T>
         {
             if (m_exists) {
                 if (other.m_exists) {
