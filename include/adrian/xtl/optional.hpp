@@ -210,8 +210,8 @@ namespace adrian::xtl::_optional
     requires requires { typename std::decay_t<T>::value_type; }
     using value_type_decay_t = typename std::decay_t<T>::value_type;
 
-    // NOTE: make sure this is pushed off into the cold path and doesn't interfere
-    //  with inlining of the callers (.value())
+    // NOTE: make sure this is pushed off into the cold path and doesn't
+    //  interfere with inlining of the callers (.value())
 #if defined(_MSC_VER)
     [[noreturn]] __declspec(noinline)
 #else
@@ -368,7 +368,8 @@ namespace adrian::xtl
             requires _optional::trivially_move_constructible<T>
             = default;
 
-        constexpr optional(optional&& other) noexcept(std::is_nothrow_move_constructible_v<T>)
+        constexpr optional(optional&& other)
+            noexcept(std::is_nothrow_move_constructible_v<T>)
             requires _optional::move_constructible<T>
         {
             if (other) {
@@ -852,7 +853,8 @@ template<typename T>
 requires std::default_initializable<std::hash<T>>
 struct std::hash<adrian::xtl::optional<T>>
 {
-    constexpr auto operator()(adrian::xtl::optional<T> const& o) const -> std::size_t
+    constexpr auto operator()(adrian::xtl::optional<T> const& o) const
+        -> std::size_t
     {
         return o ? hash<T>()(*o) : size_t(-1);
     }
