@@ -166,6 +166,45 @@ namespace adrian::xtl::_optional
         and trivially_move_constructible<T>
         and std::is_trivially_move_assignable_v<T>;
 
+    template<typename O, typename T, typename Opt>
+    concept _conversion_constructible
+        = (std::same_as<Opt const&, O> or std::same_as<Opt&&, O>)
+        and requires { typename Opt::value_type; }
+        and std::same_as<optional<typename Opt::value_type>, Opt>
+        and (not std::same_as<typename Opt::value_type, T>)
+        and (std::is_constructible_v<T, decltype(*std::declval<O>())>)
+        and (not std::is_constructible_v<T, Opt&>)
+        and (not std::is_constructible_v<T, Opt const&>)
+        and (not std::is_constructible_v<T, Opt&&>)
+        and (not std::is_constructible_v<T, Opt const&&>)
+        and (not std::is_convertible_v<Opt&, T>)
+        and (not std::is_convertible_v<Opt const&, T>)
+        and (not std::is_convertible_v<Opt&&, T>)
+        and (not std::is_convertible_v<Opt const&&, T>);
+
+    template<typename O, typename T>
+    concept conversion_constructible
+        = _conversion_constructible<
+            O,
+            T,
+            std::remove_const_t<std::remove_reference_t<O>>>;
+
+    template<typename O, typename T, typename Opt>
+    concept _conversion_assignable
+        = _conversion_constructible<O, T, Opt>
+        and (std::is_assignable_v<T&, decltype(*std::declval<O>())>)
+        and (not std::is_assignable_v<T&, Opt&>)
+        and (not std::is_assignable_v<T&, Opt const&>)
+        and (not std::is_assignable_v<T&, Opt&&>)
+        and (not std::is_assignable_v<T&, Opt const&&>);
+
+    template<typename O, typename T>
+    concept conversion_assignable
+        = _conversion_assignable<
+            O,
+            T,
+            std::remove_const_t<std::remove_reference_t<O>>>;
+
 #if defined(_MSC_VER)
     [[noreturn]] __declspec(noinline)
 #else
