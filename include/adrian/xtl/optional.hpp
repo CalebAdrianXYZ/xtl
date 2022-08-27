@@ -317,7 +317,7 @@ namespace adrian::xtl
                 requires std::is_trivially_destructible_v<T>
                 = default;
 
-            ~storage_type()
+            constexpr ~storage_type()
                 requires (not std::is_trivially_destructible_v<T>)
             {
             }
