@@ -2,6 +2,8 @@
 #define ADRIAN_XTL_OPTIONAL_HPP
 
 // TODO: further document STL dependencies.
+// NOTE: functions are intentionally not-nodiscard for compliance with the the
+//  the C++ standard
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -230,6 +232,7 @@ namespace adrian::xtl::_optional
             typename U = typename R::value_type>
         requires
             std::same_as<O, optional<T>> and std::same_as<R, optional<U>>
+        [[nodiscard]]
         constexpr auto operator()(QO&& o, F&& f) const -> R
         {
             if (o) {
@@ -260,6 +263,7 @@ namespace adrian::xtl::_optional
             and (not std::same_as<U, nullopt_t>)
             and (not std::is_array_v<U>)
             and std::constructible_from<U, QU>
+        [[nodiscard]]
         constexpr auto operator()(QO&& o, F&& f) const -> R
         {
             if (o) {
@@ -288,6 +292,7 @@ namespace adrian::xtl::_optional
         requires
             std::same_as<O, optional<T>> and std::same_as<R, optional<T>>
             and std::constructible_from<T, QT>
+        [[nodiscard]]
         constexpr auto operator()(QO&& o, F&& f) const -> optional<T>
         {
             if (o) {
