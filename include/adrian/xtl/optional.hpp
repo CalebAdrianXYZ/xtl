@@ -88,6 +88,10 @@ namespace adrian::xtl
     struct nullopt_t final
     {
         explicit constexpr nullopt_t(int) {}
+
+        friend auto operator<=>(nullopt_t, nullopt_t)
+            -> std::strong_ordering
+            = default;
     };
     inline constexpr auto nullopt = nullopt_t{0};
 
@@ -127,6 +131,13 @@ namespace adrian::xtl
 
 namespace adrian::xtl::_optional
 {
+    template<typename T>
+    concept not_optional
+        = (not requires { typename std::remove_cvref_t<T>::value_type; })
+        or (not std::same_as<
+            optional<typename std::remove_cvref_t<T>::value_type>,
+            std::remove_cvref_t<T>>);
+
     template<typename T>
     concept copy_constructible
         = std::is_copy_constructible_v<T>;
@@ -804,10 +815,24 @@ namespace adrian::xtl
         return !x and !y;
     }
 
+    template<typename T>
+    constexpr auto operator==(optional<T> const& x, xtl::nullopt_t) noexcept
+        -> bool
+    {
+        return !x;
+    }
+
+    template<typename T, _optional::not_optional U>
+    requires std::equality_comparable_with<T const&, U const&>
+    constexpr auto operator==(optional<T> const& x, U const& y) -> bool
+    {
+        return x ? *x == y : false;
+    }
+
     template<typename T, typename U>
     requires std::three_way_comparable_with<T const&, U const&>
     constexpr auto operator<=>(optional<T> const& x, optional<U> const& y)
-        -> std::common_comparison_category_t<T, U>
+        -> std::compare_three_way_result_t<T, U>
     {
         if (!x) {
             if (y) {
@@ -823,6 +848,23 @@ namespace adrian::xtl
         else {
             return *x <=> *y;
         }
+    }
+
+    template<typename T>
+    constexpr auto operator<=>(optional<T> const& x, xtl::nullopt_t) noexcept
+        -> std::strong_ordering
+    {
+        return x.has_value()
+            ? std::strong_ordering::greater
+            : std::strong_ordering::equal;
+    }
+
+    template<typename T, _optional::not_optional U>
+    requires std::three_way_comparable_with<T const&, U const&>
+    constexpr auto operator<=>(optional<T> const& x, U const& y)
+        -> std::compare_three_way_result_t<T, U>
+    {
+        return x ? x <=> y : std::strong_ordering::less;
     }
 
     template<typename T, typename..., typename DT = std::decay_t<T>>
