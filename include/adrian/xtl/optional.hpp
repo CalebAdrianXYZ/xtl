@@ -210,6 +210,8 @@ namespace adrian::xtl::_optional
     requires requires { typename std::decay_t<T>::value_type; }
     using value_type_decay_t = typename std::decay_t<T>::value_type;
 
+    // NOTE: make sure this is pushed off into the cold path and doesn't interfere
+    //  with inlining of the callers (.value())
 #if defined(_MSC_VER)
     [[noreturn]] __declspec(noinline)
 #else
