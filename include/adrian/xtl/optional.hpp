@@ -1,7 +1,6 @@
 #if !defined(ADRIAN_XTL_OPTIONAL_HPP)
 #define ADRIAN_XTL_OPTIONAL_HPP
 
-// TODO: refactor constraints used in optional to use subsumable-concepts.
 // TODO: further document STL dependencies.
 
 #if defined(_MSC_VER)
