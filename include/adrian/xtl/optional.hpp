@@ -113,11 +113,11 @@ namespace adrian::xtl
 
     namespace _optional
     {
-    template<typename T>
-    concept cpp17_destructible
-        = std::is_nothrow_destructible_v<T>
-        and (not std::is_reference_v<T>)
-        and (not std::is_array_v<T>);
+        template<typename T>
+        concept cpp17_destructible
+            = std::is_nothrow_destructible_v<T>
+            and (not std::is_reference_v<T>)
+            and (not std::is_array_v<T>);
     }
 
     template<_optional::cpp17_destructible T>
@@ -126,6 +126,46 @@ namespace adrian::xtl
 
 namespace adrian::xtl::_optional
 {
+    template<typename T>
+    concept copy_constructible
+        = std::is_copy_constructible_v<T>;
+
+    template<typename T>
+    concept trivially_copy_constructible
+        = copy_constructible<T>
+        and std::is_trivially_copy_constructible_v<T>;
+
+    template<typename T>
+    concept move_constructible
+        = std::is_move_constructible_v<T>;
+
+    template<typename T>
+    concept trivially_move_constructible
+        = move_constructible<T>
+        and std::is_trivially_move_constructible_v<T>;
+
+    template<typename T>
+    concept copy_assignable
+        = copy_constructible<T>
+        and std::is_copy_assignable_v<T>;
+
+    template<typename T>
+    concept trivially_copy_assignable
+        = copy_assignable<T>
+        and trivially_copy_constructible<T>
+        and std::is_trivially_copy_assignable_v<T>;
+
+    template<typename T>
+    concept move_assignable
+        = move_constructible<T>
+        and std::is_move_assignable_v<T>;
+
+    template<typename T>
+    concept trivially_move_assignable
+        = move_assignable<T>
+        and trivially_move_constructible<T>
+        and std::is_trivially_move_assignable_v<T>;
+
 #if defined(_MSC_VER)
     [[noreturn]] __declspec(noinline)
 #else
@@ -224,7 +264,8 @@ namespace adrian::xtl
     struct optional
     {
     private: // private member types
-        union storage_type {
+        union storage_type
+        {
             char empty{};
             T value;
 
